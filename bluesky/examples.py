@@ -2,7 +2,11 @@ import asyncio
 import time as ttime
 from collections import deque
 import numpy as np
-from .run_engine import Msg
+
+from bluesky.plan_tools import wrap_with_decorator, run_wrapper
+from bluesky.run_engine import Msg
+
+
 
 loop = asyncio.get_event_loop()
 
@@ -139,7 +143,7 @@ class Mover(Base):
         pass
 
     def trigger(self):
-        return None
+        return self
 
 
 class SynGauss(Reader):
@@ -405,11 +409,10 @@ det2 = SynGauss('det2', motor2, 'motor2', center=1, Imax=2, sigma=2)
 det3 = SynGauss('det3', motor3, 'motor3', center=-1, Imax=2, sigma=1)
 
 
+@wrap_with_decorator(run_wrapper)
 def simple_scan(motor):
-    yield Msg('open_run')
     yield Msg('set', motor, 5)
     yield Msg('read', motor)
-    yield Msg('close_run')
 
 
 def conditional_break(det, motor, threshold):
@@ -428,63 +431,58 @@ def conditional_break(det, motor, threshold):
         i += 1
 
 
+@wrap_with_decorator(run_wrapper)
 def sleepy(det, motor):
     "Set, trigger motor, sleep for a fixed time, trigger detector, read"
-    yield Msg('open_run')
     yield Msg('set', motor, 5)
     yield Msg('sleep', None, 2)  # units: seconds
     yield Msg('trigger', det)
     yield Msg('read', det)
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def do_nothing(timeout=5):
     "Generate 'checkpoint' messages until timeout."
     t = ttime.time()
-    yield Msg('open_run')
     while True:
         if ttime.time() > t + timeout:
             break
         ttime.sleep(0.1)
         yield Msg('checkpoint')
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def checkpoint_forever():
     # simplest pauseable scan
-    yield Msg('open_run')
     while True:
         ttime.sleep(0.1)
         yield Msg('checkpoint')
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def wait_one(det, motor):
     "Set, trigger, read"
-    yield Msg('open_run')
     yield Msg('set', motor, 5, block_group='A')  # Add to group 'A'.
     yield Msg('wait', None, 'A')  # Wait for everything in group 'A' to finish.
     yield Msg('trigger', det)
     yield Msg('read', det)
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def wait_multiple(det, motors):
     "Set motors, trigger all motors, wait for all motors to move."
-    yield Msg('open_run')
     for motor in motors:
         yield Msg('set', motor, 5, block_group='A')
     # Wait for everything in group 'A' to report done.
     yield Msg('wait', None, 'A')
     yield Msg('trigger', det)
     yield Msg('read', det)
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def wait_complex(det, motors):
     "Set motors, trigger motors, wait for all motors to move in groups."
     # Same as above...
-    yield Msg('open_run')
     for motor in motors[:-1]:
         yield Msg('set', motor, 5, block_group='A')
 
@@ -499,11 +497,10 @@ def wait_complex(det, motors):
     yield Msg('wait', None, 'B')
     yield Msg('trigger', det)
     yield Msg('read', det)
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def conditional_pause(det, motor, defer, include_checkpoint):
-    yield Msg('open_run')
     for i in range(5):
         if include_checkpoint:
             yield Msg('checkpoint')
@@ -513,7 +510,6 @@ def conditional_pause(det, motor, defer, include_checkpoint):
         if reading['det']['value'] < 0.2:
             yield Msg('pause', defer=defer)
         print("I'm not pausing yet.")
-    yield Msg('close_run')
 
 
 def panic_timer(RE, delay):
@@ -521,20 +517,19 @@ def panic_timer(RE, delay):
     loop.call_later(delay, RE.panic)
 
 
+@wrap_with_decorator(run_wrapper)
 def simple_scan_saving(det, motor):
     "Set, trigger, read"
-    yield Msg('open_run')
     yield Msg('create')
     yield Msg('set', motor, 5)
     yield Msg('read', motor)
     yield Msg('trigger', det)
     yield Msg('read', det)
     yield Msg('save')
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def stepscan(det, motor):
-    yield Msg('open_run')
     for i in range(-5, 5):
         yield Msg('create')
         yield Msg('set', motor, i)
@@ -542,11 +537,10 @@ def stepscan(det, motor):
         yield Msg('read', motor)
         yield Msg('read', det)
         yield Msg('save')
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def cautious_stepscan(det, motor):
-    yield Msg('open_run')
     for i in range(-5, 5):
         yield Msg('checkpoint')
         yield Msg('create')
@@ -558,18 +552,16 @@ def cautious_stepscan(det, motor):
         print("Value at {m} is {d}. Pausing.".format(
             m=ret_m[motor.name]['value'], d=ret_d[det.name]['value']))
         yield Msg('pause', None, defer=True)
-    yield Msg('close_run')
 
 
+@wrap_with_decorator(run_wrapper)
 def fly_gen(flyer, start, stop, step):
-    yield Msg('open_run')
     yield Msg('kickoff', flyer, start, stop, step, block_group='fly')
     yield Msg('wait', None, 'fly')
     yield Msg('collect', flyer)
     yield Msg('kickoff', flyer, start, stop, step, block_group='fly')
     yield Msg('wait', None, 'fly')
     yield Msg('collect', flyer)
-    yield Msg('close_run')
 
 
 def multi_sample_temperature_ramp(detector, sample_names, sample_positions,
@@ -580,7 +572,7 @@ def multi_sample_temperature_ramp(detector, sample_names, sample_positions,
         yield Msg('read', temp_controller)
         yield Msg('save')
 
-    peak_centers = [-1+3*n for n in range(len((sample_names)))]
+    peak_centers = [-1 + (3 * n) for n in range(len((sample_names)))]
     detector.noise = True
 
     for idx, temp in enumerate(np.arange(tstart, tstop, tstep)):

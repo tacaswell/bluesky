@@ -173,7 +173,7 @@ def trigger_and_read(det_list):
     """
     grp = str(uuid.uuid4())
     for det in det_list:
-        yield Msg('trigger', det, wait_group=grp)
+        yield Msg('trigger', det, block_group=grp)
     yield Msg('wait', None, grp)
 
     for det in det_list:
@@ -205,7 +205,6 @@ def caching_repeater(n, plan):
         yield from (m for m in lst_plan)
 
 
-@wrap_with_decorator(run_wrapper)
 def ct(dets, n, subs=None):
     """Count
 
@@ -214,12 +213,13 @@ def ct(dets, n, subs=None):
     dets = list(dets)
     if subs is None:
         subs = {'all': [LiveTable(dets)]}
-    if n is None:
-        subs['all'].append(LivePlot(scalar_heuristic(dets[0])))
+
+        if n is None:
+            subs['all'].append(LivePlot(scalar_heuristic(dets[0])))
 
     plan = stage_wrapper(repeater(n, trigger_and_read, dets),
                          dets)
-    plan_with_subs = subscription_wrapper(plan, subs)
+    plan_with_subs = subscription_wrapper(run_wrapper(plan), subs)
 
     ret = yield from plan_with_subs
     return ret
