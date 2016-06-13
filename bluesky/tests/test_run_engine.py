@@ -365,3 +365,19 @@ def test_record_interruptions(fresh_RE):
     assert len(docs['event']) == 2
     docs['event'][0]['data']['interruption'] == 'pause'
     docs['event'][1]['data']['interruption'] == 'resume'
+
+
+def test_no_rewind(fresh_RE):
+    RE = fresh_RE
+    msg_lst = []
+
+    def msg_collector(msg):
+        msg_lst.append(msg)
+
+    RE.rewindable = False
+
+    plan = [Msg('null')] * 3 + [Msg('pause')] + [Msg('null')] * 3
+    RE.msg_hook = msg_collector
+    RE(plan)
+    RE.resume()
+    assert msg_lst == plan
