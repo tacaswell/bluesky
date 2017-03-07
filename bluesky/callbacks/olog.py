@@ -1,7 +1,7 @@
 from io import StringIO
 from pprint import pformat
 import logging
-from . import CallbackBase
+from . import CallbackBaseSafe
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -164,7 +164,7 @@ def call_str(start, call_template=None):
     return call_renderer.render(start=start)
 
 
-class OlogCallback(CallbackBase):
+class OlogCallback(CallbackBaseSafe):
     """Example callback to customize the logbook.
 
     This callback publishes the most recent IPython command (which of course

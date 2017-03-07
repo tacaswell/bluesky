@@ -1,12 +1,12 @@
 import os
 import time as ttime
-from .core import CallbackBase
+from .core import CallbackBaseSafe, CallbackBase
 from ..utils import ensure_uid
 import numpy as np
 import doct
 
 
-class LiveImage(CallbackBase):
+class LiveImage(CallbackBaseSafe):
     """
     Stream 2D images in a cross-section viewer.
 

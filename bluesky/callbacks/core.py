@@ -36,6 +36,14 @@ class CallbackBase:
         pass
 
 
+class CallbackBaseSafe(CallbackBase):
+    def __call__(self, name, doc):
+        try:
+            super().__call__(name, doc)
+        except Exception as e:
+            print('*'*5, e)
+
+
 class CallbackCounter:
     "As simple as it sounds: count how many times a callback is called."
     # Wrap itertools.count in something we can use as a callback.
@@ -80,7 +88,7 @@ def collector(field, output):
     return f
 
 
-class LivePlot(CallbackBase):
+class LivePlot(CallbackBaseSafe):
     """
     Build a function that updates a plot from a stream of Events.
 
@@ -233,7 +241,7 @@ def _get_obj_fields(fields):
     return string_fields
 
 
-class CollectThenCompute(CallbackBase):
+class CollectThenCompute(CallbackBaseSafe):
 
     def __init__(self):
         self._start_doc = None
@@ -349,7 +357,7 @@ class LiveMesh(CallbackBase):
         self.sc.set_array(np.asarray(self._Idata))
 
 
-class LiveRaster(CallbackBase):
+class LiveRaster(CallbackBaseSafe):
     """Plot gridded 2D data in a "heat map".
 
     This assumes that readings are placed on a regular grid and can be placed
@@ -452,7 +460,7 @@ class LiveRaster(CallbackBase):
         self.im.set_array(self._Idata)
 
 
-class LiveTable(CallbackBase):
+class LiveTable(CallbackBaseSafe):
     '''Live updating table
 
     Parameters
@@ -639,7 +647,7 @@ class LiveTable(CallbackBase):
         print(out_str)
 
 
-class LiveFit(CallbackBase):
+class LiveFit(CallbackBaseSafe):
     """
     Fit a model to data using nonlinear least-squares minimization.
 
