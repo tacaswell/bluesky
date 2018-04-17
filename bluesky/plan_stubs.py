@@ -778,6 +778,12 @@ def trigger_and_read(devices, name='primary'):
         yield from null()
     devices = separate_devices(devices)  # remove redundant entries
     rewindable = all_safe_rewind(devices)  # if devices can be re-triggered
+    may_stream = [d for d in devices
+                  if (getattr(d, 'read_mode', {}).
+                      get('streaming', None) == 'ondemand')]
+    want_to_stream = [d for d in devices
+                      if (getattr(d, 'read_mode', {}).
+                          get('streaming', None) == 'always')]
 
     def inner_trigger_and_read():
         grp = _short_uid('trigger')
@@ -786,6 +792,11 @@ def trigger_and_read(devices, name='primary'):
             if hasattr(obj, 'trigger'):
                 no_wait = False
                 yield from trigger(obj, group=grp)
+        if want_to_stream:
+            yield from create(f'{name}_streaming')
+            for obj in want_to_stream + may_stream:
+                yield from read(obj, read_mode='streaming')
+            yield from save()
         # Skip 'wait' if none of the devices implemented a trigger method.
         if not no_wait:
             yield from wait(group=grp)
