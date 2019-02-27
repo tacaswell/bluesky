@@ -22,7 +22,7 @@ from . import preprocessors as bpp
 from . import plan_stubs as bps
 
 
-def count(detectors, num=1, delay=None, *, md=None):
+def count(detectors, num=1, delay=None, *, per_step=None, md=None):
     """
     Take one or more readings from detectors.
 
@@ -36,6 +36,17 @@ def count(detectors, num=1, delay=None, *, md=None):
         If None, capture data until canceled
     delay : iterable or scalar, optional
         Time delay in seconds between successive readings; default is 0.
+    per_step : callable, optional
+        hook for customizing action of inner loop (messages per step)
+        Expected signature:
+        ``f(detectors, step, pos_cache) -> plan (a generator)``
+
+        ..note ::
+
+            In this case ``step`` and ``pos_cache`` are provided purely for API
+            compatibility with ``bluesky.plan_stubs.one_nd_step`` and similar
+            custom ``per_step`` functions, hey will be passed empty dicts.
+
     md : dict, optional
         metadata
 
@@ -58,10 +69,13 @@ def count(detectors, num=1, delay=None, *, md=None):
     _md.update(md or {})
     _md['hints'].setdefault('dimensions', [(('time',), 'primary')])
 
+    if per_step is None:
+        per_step = bps.count_step
+
     @bpp.stage_decorator(detectors)
     @bpp.run_decorator(md=_md)
     def inner_count():
-        return (yield from bps.repeat(partial(bps.trigger_and_read, detectors),
+        return (yield from bps.repeat(partial(per_step, detectors, {}, {}),
                                       num=num, delay=delay))
 
     return (yield from inner_count())
@@ -727,6 +741,7 @@ def scan_nd(detectors, cycler, *, per_step=None, md=None):
                                 "but {} motors are specified.".format(dims))
             motor, = cycler.keys
             user_per_step = per_step
+
             def adapter(detectors, step, pos_cache):
                 # one_nd_step 'step' parameter is a dict; one_id_step 'step'
                 # parameter is a value
@@ -1242,7 +1257,7 @@ def spiral(detectors, x_motor, y_motor, x_start, y_start, x_range, y_range, dr,
     y_range : float
         y width of spiral
     dr : float
-        Delta radius along the minor axis of the ellipse. 
+        Delta radius along the minor axis of the ellipse.
     dr_y : float, optional
         Delta radius along the major axis of the ellipse. If None, defaults to
         dr.
@@ -1317,7 +1332,7 @@ def rel_spiral(detectors, x_motor, y_motor, x_range, y_range, dr, nth,
     y_range : float
         y width of spiral
     dr : float
-        Delta radius along the minor axis of the ellipse. 
+        Delta radius along the minor axis of the ellipse.
     dr_y : float, optional
         Delta radius along the major axis of the ellipse. If None, it
         defaults to dr.
@@ -1535,7 +1550,7 @@ def ramp_plan(go_plan,
             fail_time = time.time() + timeout
 
         # take a 'pre' data point
-        if take_pre_data == True:
+        if take_pre_data is True:
             yield from inner_plan_func()
         # start the ramp
         status = (yield from go_plan)
