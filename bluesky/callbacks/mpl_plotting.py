@@ -94,7 +94,11 @@ class LivePlot(CallbackBase):
         self.current_line, = self.ax.plot([], [], **kwargs)
         self.lines.append(self.current_line)
         self.legend = self.ax.legend(
-            loc=0, title=self.legend_title).set_draggable(True)
+            loc=0, title=self.legend_title)
+        try:
+            self.legend.set_draggable(True)
+        except AttributeError:
+            self.legend.draggable(True)
         super().start(doc)
 
     def event(self, doc):
