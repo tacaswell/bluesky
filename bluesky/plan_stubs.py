@@ -902,7 +902,7 @@ def count_step(detectors):
     detectors : Iterable[OphydObj]
         devices to read
     """
-
+    yield Msg('checkpoint')
     yield from trigger_and_read(list(detectors))
 
 
