@@ -941,6 +941,32 @@ def register_transform(RE, *, prefix='<', ip=None):
         ip.input_transformer_manager.logical_line_transforms.append(tr_re())
 
 
+class PlanCompleter:
+    def __init__(self, complete_names=None):
+        cn = complete_names if complete_names else []
+        # make sure we have a trailing (
+        self.complete_names = [' ' + _.rstrip('(') + '(' for _ in cn]
+
+    def complete(self, event):
+        if '(' in event.line:
+            return []
+
+        return self.complete_names
+
+
+def register_transform_complete(RE_name, complete_targets, *, prefix='<', ip=None):
+    import IPython
+
+    if ip is None:
+        ip = IPython.get_ipython()
+
+    register_transform(RE_name, prefix=prefix, ip=ip)
+    pc = PlanCompleter(['count', 'scan'])
+    ip.Completer.custom_completers.add_re('<[^(]*', pc.complete)
+    ip.Completer.use_jedi = False
+    return pc
+
+
 class AsyncInput:
     """a input prompt that allows event loop to run in the background
 
