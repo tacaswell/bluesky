@@ -135,10 +135,12 @@ def center_of_mass(input, labels=None, index=None):
     index : int or sequence of ints, optional
         Labels for which to calculate centers-of-mass. If not specified,
         all labels greater than zero are used.  Only used with `labels`.
+
     Returns
     -------
     center_of_mass : tuple, or list of tuples
         Coordinates of centers-of-mass.
+
     Examples
     --------
     >>> a = np.array(([0,0,0,0],
