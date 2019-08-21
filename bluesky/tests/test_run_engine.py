@@ -13,8 +13,7 @@ from bluesky.run_engine import (RunEngineStateMachine,
                                 TransitionError, IllegalMessageSequence,
                                 NoReplayAllowed, FailedStatus,
                                 RunEngineInterrupted,
-                                RequestStop,
-                                RequestAbort)
+                                RequestStop, RequestAbort, RunEngine)
 from bluesky import Msg
 from functools import partial
 from bluesky.tests.utils import MsgCollector, DocCollector
@@ -1732,3 +1731,37 @@ def test_self_describe(RE):
         assert type(RE) is cls
 
     RE(inner())
+
+
+# we can not use the fixture here!
+def test_baton():
+    class TestBaton:
+        def __init__(self):
+            self.counter = 0
+            self.installed = False
+
+        def acquire(self):
+            self.installed = True
+
+            return self.verify
+
+        def verify(self):
+            self.counter += 1
+
+    tb = TestBaton()
+
+    loop = asyncio.new_event_loop()
+    loop.set_debug(True)
+    RE = RunEngine({}, loop=loop, acquire_baton=tb.acquire)
+
+    assert tb.installed
+    assert tb.counter == 0
+    for j in range(1, 5):
+        RE([])
+        assert tb.counter == j
+
+    # clean up, normally done in fixture
+    loop.call_soon_threadsafe(loop.stop)
+    RE._th.join()
+    loop.close()
+>>>>>>> 3a14dced... TST: baton logic
