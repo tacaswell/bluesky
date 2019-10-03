@@ -62,4 +62,30 @@ def test_plot_raster_path(hw):
     motor1 = hw.motor1
     motor2 = hw.motor2
     plan = grid_scan([det], motor1, -5, 5, 10, motor2, -7, 7, 15, True)
-    plot_raster_path(plan, 'motor1', 'motor2', probe_size=.3)
+    plot_raster_path(plan, "motor1", "motor2", probe_size=0.3)
+
+
+def test_summary_wrapper_comms():
+    class TestException(Exception):
+        ...
+
+    def inner_plan():
+        ret = yield Msg("a")
+        assert ret == Msg("a")
+        try:
+            ret = yield Msg("b")
+            assert False  # should never hit here
+        except TestException:
+            ret = yield Msg("c")
+            assert ret == Msg("c")
+        return Msg("d")
+
+    test_plan = print_summary_wrapper(inner_plan())
+
+    assert Msg("a") == test_plan.send(None)
+    assert Msg("b") == test_plan.send(Msg("a"))
+    assert Msg("c") == test_plan.throw(TestException)
+    try:
+        test_plan.send(Msg("c"))
+    except StopIteration as si:
+        assert si.value == Msg("d")
