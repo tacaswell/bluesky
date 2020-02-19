@@ -36,7 +36,7 @@ from .utils import (CallbackRegistry, SigintHandler,
                     RunEngineInterrupted, IllegalMessageSequence,
                     FailedPause, FailedStatus, InvalidCommand,
                     PlanHalt, Msg, ensure_generator, single_gen,
-                    default_during_task)
+                    DefaultDuringTask)
 
 
 class _RunEnginePanic(Exception):
@@ -293,12 +293,14 @@ class RunEngine:
     def __init__(self, md=None, *, loop=None, preprocessors=None,
                  context_managers=None, md_validator=None,
                  scan_id_source=default_scan_id_source,
-                 during_task=default_during_task):
+                 during_task=None):
         if loop is None:
             loop = get_bluesky_event_loop()
         self._th = _ensure_event_loop_running(loop)
         self._state_lock = threading.RLock()
         self._loop = loop
+        if during_task is None:
+            during_task = DefaultDuringTask()
         self._during_task = during_task
 
         # When set, RunEngine.__call__ should stop blocking.
@@ -345,8 +347,6 @@ class RunEngine:
         self.waiting_hook = None
         self.record_interruptions = False
         self.pause_msg = PAUSE_MSG
-
-        self._during_task.initialize()
 
         # The RunEngine keeps track of a *lot* of state.
         # All flags and caches are defined here with a comment. Good luck.
@@ -858,6 +858,9 @@ class RunEngine:
         # The task will set it when it is done, as it was previously
         # configured to do it __call__.
         self._blocking_event.clear()
+
+        # offer the durring task a chance to start up
+        self._during_task.initialize()
 
         # Handle all context managers
         with ExitStack() as stack:

@@ -1504,9 +1504,6 @@ class DefaultDuringTask(DuringTask):
                 blocking_event.wait()
 
 
-default_during_task = DefaultDuringTask()
-
-
 def _rearrange_into_parallel_dicts(readings):
     data = {}
     timestamps = {}
