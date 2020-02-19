@@ -1338,16 +1338,13 @@ _qapp = None
 
 class DuringTask:
 
-    def initialize(self):
-        pass
-
     def block(self, blocking_event):
         blocking_event.wait()
 
 
 class DefaultDuringTask(DuringTask):
 
-    def initialize(self):
+    def __init__(self):
         """
         Initialize backend. Currently on Qt backend is supported. The function
         is initalizing the 'teleporter' if Qt backend is used.
@@ -1502,9 +1499,6 @@ class DefaultDuringTask(DuringTask):
             else:
                 # We are not using matplotlib + Qt. Just wait on the Event.
                 blocking_event.wait()
-
-
-default_during_task = DefaultDuringTask()
 
 
 def _rearrange_into_parallel_dicts(readings):
