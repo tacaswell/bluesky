@@ -450,6 +450,7 @@ class RunEngine:
         self._status_tasks = deque()  # from self._status_object_completed
         self._pardon_failures = None  # will hold an asyncio.Event
         self._plan = None  # the plan instance from __call__
+        self._require_stream_declaration = False
         self._command_registry = {
             'declare_stream': self._declare_stream,
             'create': self._create,
@@ -1775,7 +1776,8 @@ class RunEngine:
         self.md_validator(dict(md))
 
         current_run = self._run_bundlers[run_key] = type(self).RunBundler(
-            md, self.record_interruptions, self.emit, self.emit_sync, self.log
+            md, self.record_interruptions, self.emit, self.emit_sync, self.log,
+            strict_pre_declare=self._require_stream_declaration
         )
 
         new_uid = await current_run.open_run(msg)
