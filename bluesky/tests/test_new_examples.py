@@ -709,3 +709,15 @@ def test_per_step(RE, hw):
     with pytest.raises(TypeError) as excinfo:
         RE(scan([hw.det], hw.motor, -1, 1, 3, per_step=bad_sig))
     assert excinfo.match("per_step must be a callable with the signature")
+
+
+def test_custom_stream_name(RE, hw):
+
+    def new_trigger_and_read(devices):
+        return (yield from trigger_and_read(devices, name='secondary'))
+
+    def new_per_step(detectors, motor, step):
+        return (yield from one_1d_step(detectors, motor,
+                                       step, take_reading=new_trigger_and_read))
+
+    RE(scan([hw.det], hw.motor, -1, 1, 3, per_step=new_per_step))
