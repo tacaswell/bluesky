@@ -733,3 +733,6 @@ def test_custom_stream_name(RE, hw):
 
     with pytest.raises(IllegalMessageSequence):
         RE(count([hw.det], 3, per_shot=new_per_shot))
+
+    with pytest.raises(IllegalMessageSequence):
+        RE(count([hw.det], 3, per_shot=one_shot))
