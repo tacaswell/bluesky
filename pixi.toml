@@ -89,9 +89,10 @@ tqdm = ">=4.44"
 types-mock = "*"
 typing_extensions = ">=4.10.0"
 zict = "*"
+pytest-xdist = ">=3.8.0,<4"
 
 [feature.test.tasks]
-test = "pytest --cov=bluesky --cov-report=term --cov-report=xml:cov.xml"
+test = "pytest -n auto --cov=bluesky --cov-report=term --cov-report=xml:cov.xml"
 
 # ── Lint feature ──────────────────────────────────────────────────────────────
 
